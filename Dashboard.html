@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DevFlow Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1A1015;
+            color: #f1dde5;
+            margin: 0;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .signature-gradient {
+            background: linear-gradient(90deg, #6B7FFF 0%, #F0A830 100%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1A1015;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3e3137;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "text-tertiary": "#6B5F72",
+                      "on-secondary-fixed-variant": "#1e35b7",
+                      "surface-dim": "#1a1015",
+                      "primary-fixed": "#e0e0ff",
+                      "surface": "#241820",
+                      "on-tertiary": "#3b2f00",
+                      "background": "#1a1015",
+                      "on-background": "#f1dde5",
+                      "primary-fixed-dim": "#bfc2ff",
+                      "on-primary-container": "#222665",
+                      "border-subtle": "rgba(139, 143, 212, 0.15)",
+                      "error": "#ffb4ab",
+                      "elevated": "#2E1F28",
+                      "on-primary-fixed-variant": "#3c4080",
+                      "text-primary": "#FFFFFF",
+                      "surface-bright": "#42363b",
+                      "inverse-primary": "#545899",
+                      "secondary-fixed-dim": "#bbc3ff",
+                      "outline-variant": "#464650",
+                      "on-secondary": "#001c95",
+                      "text-secondary": "#A89DB0",
+                      "on-primary": "#252968",
+                      "inverse-surface": "#f1dde5",
+                      "border-accent": "rgba(139, 143, 212, 0.35)",
+                      "tertiary": "#e1c562",
+                      "error-container": "#93000a",
+                      "on-tertiary-fixed-variant": "#564500",
+                      "on-error": "#690005",
+                      "surface-variant": "#3e3137",
+                      "tertiary-container": "#c4a94a",
+                      "tertiary-fixed": "#ffe17b",
+                      "on-tertiary-container": "#4d3e00",
+                      "secondary-container": "#2138b9",
+                      "secondary-fixed": "#dee0ff",
+                      "on-surface-variant": "#c7c5d1",
+                      "surface-container-low": "#23191e",
+                      "surface-tint": "#bfc2ff",
+                      "surface-container-highest": "#3e3137",
+                      "surface-container-high": "#32272c",
+                      "gradient-end": "#F0A830",
+                      "on-primary-fixed": "#0e1152",
+                      "surface-container": "#271c22",
+                      "on-error-container": "#ffdad6",
+                      "outline": "#918f9b",
+                      "gradient-start": "#6B7FFF",
+                      "tertiary-fixed-dim": "#e1c562",
+                      "gradient-warm": "#E8825A",
+                      "gradient-mid": "#9B6FD4",
+                      "on-surface": "#f1dde5",
+                      "on-tertiary-fixed": "#231b00",
+                      "surface-container-lowest": "#150b10",
+                      "primary": "#bfc2ff",
+                      "secondary": "#bbc3ff",
+                      "inverse-on-surface": "#392d33",
+                      "on-secondary-fixed": "#000e5e",
+                      "primary-container": "#8b8fd4",
+                      "on-secondary-container": "#a9b3ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "24px",
+                      "stack-md": "12px",
+                      "stack-sm": "8px",
+                      "stack-lg": "16px",
+                      "container-max": "1440px",
+                      "navbar-height": "52px",
+                      "sidebar-width": "200px"
+              },
+              "fontFamily": {
+                      "body-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "headline-md-mobile": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "label-caps": ["Inter"]
+              },
+              "fontSize": {
+                      "body-md": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+                      "body-lg": ["15px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-md": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "headline-md-mobile": ["20px", {"lineHeight": "26px", "fontWeight": "600"}],
+                      "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-sm": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-sm": ["10px", {"lineHeight": "14px", "fontWeight": "500"}],
+                      "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="overflow-hidden">
+<!-- TopNavBar Shell -->
+<nav class="fixed top-0 w-full h-[52px] z-50 flex justify-between items-center px-gutter bg-background border-b border-border-subtle">
+<div class="flex items-center gap-2 font-headline-md text-headline-md font-bold text-primary">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+            DevFlow
+        </div>
+<div class="hidden md:flex items-center gap-8">
+<a class="font-label-md text-label-md text-text-primary border-b-2 border-primary pb-1" href="#">Dashboard</a>
+<a class="font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors" href="#">Projects</a>
+<a class="font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors" href="#">Kanban</a>
+<a class="font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors" href="#">Calendar</a>
+<a class="font-label-md text-label-md text-text-secondary hover:text-text-primary transition-colors" href="#">Team</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-text-secondary hover:text-text-primary transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-border-subtle overflow-hidden">
+<img alt="User avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRj38r6nxqOmEE3CfcH5U6ymP5gxsxixgva_mp9IEefL45cfhJg69ixm6vKAAS1fnuVf0BunJnJvv8TTfxZedACOZ-HETH9XzHrlNchr3BLcv1YdpkKYZVRt3k_VCGtOwcU_Et4Limx5pJa0syU9pMP9OFGzzSjAzGmNossgJjH7_-hyh_DQ3XqTUVTUp780INf2qk-2UzzBX5htk_veI5TmeulpfzwwQlphNfoAnU7tKQA2Dc0AcymsGK-0IwqYfWQRRmhaoyhI8"/>
+</div>
+</div>
+</nav>
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-[52px] w-[200px] h-[calc(100vh-52px)] flex flex-col py-stack-lg gap-stack-md bg-surface border-r border-border-subtle hidden md:flex">
+<div class="px-4 mb-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-[18px]" data-icon="dashboard">dashboard</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-primary leading-none">Main</p>
+<p class="font-body-sm text-body-sm text-text-secondary">Product Development</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-2 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded font-label-caps text-label-caps text-text-primary border-l-2 border-primary bg-elevated" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="dashboard">dashboard</span> Overview
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-label-caps text-label-caps text-text-secondary hover:text-text-primary hover:bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="rule">rule</span> Issues
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-label-caps text-label-caps text-text-secondary hover:text-text-primary hover:bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="merge_type">merge_type</span> Pull Requests
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-label-caps text-label-caps text-text-secondary hover:text-text-primary hover:bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="forum">forum</span> Discussions
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-label-caps text-label-caps text-text-secondary hover:text-text-primary hover:bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span> Settings
+            </a>
+</nav>
+<div class="mt-auto px-4 py-4 space-y-4">
+<button class="w-full py-2 px-4 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md font-bold flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span> New Task
+            </button>
+<div class="pt-4 border-t border-border-subtle space-y-2">
+<a class="flex items-center gap-3 text-text-secondary hover:text-text-primary font-body-sm text-body-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="description">description</span> Documentation
+                </a>
+<a class="flex items-center gap-3 text-text-secondary hover:text-text-primary font-body-sm text-body-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="help">help</span> Support
+                </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="fixed md:left-[200px] top-[52px] right-0 bottom-0 overflow-y-auto custom-scrollbar p-gutter bg-background">
+<div class="max-w-container-max mx-auto space-y-8">
+<!-- Header Greeting -->
+<header class="flex flex-col gap-1">
+<h1 class="font-display-lg text-display-lg text-text-primary">Good morning, Dev Team 👋</h1>
+<p class="font-body-md text-body-md text-text-secondary">Here's what's happening with your projects today.</p>
+</header>
+<!-- Metrics Row -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Lavender: Active Projects -->
+<div class="bg-surface p-stack-lg rounded-xl border border-border-subtle hover:bg-elevated hover:border-accent transition-all duration-200 group">
+<div class="flex justify-between items-start mb-4">
+<span class="p-2 rounded bg-primary-container/20 text-primary-container">
+<span class="material-symbols-outlined" data-icon="rocket_launch">rocket_launch</span>
+</span>
+<span class="text-label-sm font-label-sm text-text-tertiary">Live</span>
+</div>
+<p class="text-headline-md font-headline-md text-primary-container">4</p>
+<p class="text-label-caps font-label-caps text-text-secondary">Active Projects</p>
+</div>
+<!-- Amber: In Progress -->
+<div class="bg-surface p-stack-lg rounded-xl border border-border-subtle hover:bg-elevated hover:border-accent transition-all duration-200 group">
+<div class="flex justify-between items-start mb-4">
+<span class="p-2 rounded bg-tertiary-container/20 text-tertiary">
+<span class="material-symbols-outlined" data-icon="pending">pending</span>
+</span>
+<span class="text-label-sm font-label-sm text-text-tertiary">+2 today</span>
+</div>
+<p class="text-headline-md font-headline-md text-tertiary">12</p>
+<p class="text-label-caps font-label-caps text-text-secondary">Tasks In Progress</p>
+</div>
+<!-- Teal: Completed -->
+<div class="bg-surface p-stack-lg rounded-xl border border-border-subtle hover:bg-elevated hover:border-accent transition-all duration-200 group">
+<div class="flex justify-between items-start mb-4">
+<span class="p-2 rounded bg-emerald-500/10 text-emerald-400">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+</span>
+<span class="text-label-sm font-label-sm text-text-tertiary">This week</span>
+</div>
+<p class="text-headline-md font-headline-md text-emerald-400">8</p>
+<p class="text-label-caps font-label-caps text-text-secondary">Completed</p>
+</div>
+<!-- Coral: Overdue -->
+<div class="bg-surface p-stack-lg rounded-xl border border-border-subtle hover:bg-elevated hover:border-accent transition-all duration-200 group">
+<div class="flex justify-between items-start mb-4">
+<span class="p-2 rounded bg-error-container/20 text-error">
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+</span>
+<span class="text-label-sm font-label-sm text-error/60">Urgent</span>
+</div>
+<p class="text-headline-md font-headline-md text-error">2</p>
+<p class="text-label-caps font-label-caps text-text-secondary">Overdue</p>
+</div>
+</section>
+<!-- Mid Section: Calendar & Activity -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Calendar Widget -->
+<div class="lg:col-span-1 bg-surface rounded-xl border border-border-subtle p-stack-lg">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm text-text-primary">June 2025</h3>
+<div class="flex gap-2">
+<button class="p-1 hover:bg-elevated rounded transition-colors"><span class="material-symbols-outlined text-[20px]" data-icon="chevron_left">chevron_left</span></button>
+<button class="p-1 hover:bg-elevated rounded transition-colors"><span class="material-symbols-outlined text-[20px]" data-icon="chevron_right">chevron_right</span></button>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-y-4 text-center">
+<div class="font-label-caps text-label-caps text-text-tertiary">S</div>
+<div class="font-label-caps text-label-caps text-text-tertiary">M</div>
+<div class="font-label-caps text-label-caps text-text-tertiary">T</div>
+<div class="font-label-caps text-label-caps text-text-tertiary">W</div>
+<div class="font-label-caps text-label-caps text-text-tertiary">T</div>
+<div class="font-label-caps text-label-caps text-text-tertiary">F</div>
+<div class="font-label-caps text-label-caps text-text-tertiary">S</div>
+<!-- Empty start -->
+<div class="py-2 text-text-tertiary/20"></div>
+<div class="py-2 text-text-tertiary/20"></div>
+<div class="py-2 text-text-tertiary/20"></div>
+<div class="py-2 text-text-tertiary/20"></div>
+<div class="py-2 text-text-tertiary/20"></div>
+<div class="py-2 font-body-sm text-body-sm">1</div>
+<div class="py-2 font-body-sm text-body-sm">2</div>
+<div class="py-2 font-body-sm text-body-sm">3</div>
+<div class="py-2 font-body-sm text-body-sm relative flex justify-center items-center">
+<span class="z-10">4</span>
+<div class="absolute w-8 h-8 rounded-full bg-primary-container/20 border border-primary-container"></div>
+</div>
+<div class="py-2 font-body-sm text-body-sm">5</div>
+<div class="py-2 font-body-sm text-body-sm">6</div>
+<div class="py-2 font-body-sm text-body-sm">7</div>
+<div class="py-2 font-body-sm text-body-sm">8</div>
+<div class="py-2 font-body-sm text-body-sm">9</div>
+<div class="py-2 font-body-sm text-body-sm">10</div>
+<div class="py-2 font-body-sm text-body-sm">11</div>
+<div class="py-2 font-body-sm text-body-sm">12</div>
+<div class="py-2 font-body-sm text-body-sm">13</div>
+<div class="py-2 font-body-sm text-body-sm">14</div>
+<div class="py-2 font-body-sm text-body-sm">15</div>
+</div>
+<div class="mt-8 space-y-3">
+<div class="p-3 bg-surface-container rounded-lg border-l-4 border-primary">
+<p class="font-label-md text-label-md text-text-primary">Sprint Planning</p>
+<p class="font-label-sm text-label-sm text-text-secondary">10:00 AM - 11:30 AM</p>
+</div>
+</div>
+</div>
+<!-- Recent Activity Feed -->
+<div class="lg:col-span-2 bg-surface rounded-xl border border-border-subtle p-stack-lg overflow-hidden flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm text-text-primary">Recent Activity</h3>
+<button class="text-label-md font-label-md text-primary hover:underline">View All</button>
+</div>
+<div class="space-y-6 overflow-y-auto pr-2 custom-scrollbar">
+<div class="flex gap-4">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface-container-high border border-border-subtle overflow-hidden">
+<img alt="Alex avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7DZhwqN5khcN7L1mPlqhDzlV87LHf7WMbiM6pc7WvOERKUCUQl8HrsU0-4En0O_mx_AdBa1oCslMGvo3Kb_x-_8XwwotTcYy5m4Zm5xouVfBwy-Q7XKl4TLcVDkftBRuhKLQfXoyZV65Is8FJomOMHZZJjmUz5f3oS68L3WijHcZIpoOXWUpbczic_BQXdlEALuY6wtU_gC2l2R2fX6dqW7imqo453IxBD07Buyls5gHA_5e9l1aOAYDlrjRvOH4L7AZchYM82N4"/>
+</div>
+<div class="space-y-1">
+<p class="font-body-sm text-body-sm text-text-primary">
+<span class="font-semibold">Alex Rivera</span> pushed 3 commits to <span class="text-primary">dev-flow/api-core</span>
+</p>
+<p class="text-label-sm font-label-sm text-text-tertiary">24 minutes ago</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface-container-high border border-border-subtle overflow-hidden">
+<img alt="Sarah avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1-OyFTNgHjYhpMizKmBaMLaOoaxx0Xpb3nZu6mepj9lvF3m_AOqN6uNP9knaQa6aBsuszC6W92myY0fsEnwp3n9QfizQ3t-7JGghOmUTKB1gUIFopwqT5851hELkaaV3kT64mlYZT1tqW8UI7MwWKB9W4FVE5tEU1SI_emBzkD-bwI1I2M8YRmGQbmxz2Trlpd3pL5fUWCaC2oYl3R9EcMe-UwwQWPHaIgIAaw7pFJ1LGCqJ5ZzJK8juBfJg6-FVsPbVfbtB3jB0"/>
+</div>
+<div class="space-y-1">
+<p class="font-body-sm text-body-sm text-text-primary">
+<span class="font-semibold">Sarah Chen</span> commented on <span class="text-tertiary">Issue #142: Authentication Refactor</span>
+</p>
+<p class="text-label-sm font-label-sm text-text-tertiary">2 hours ago</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface-container-high border border-border-subtle overflow-hidden">
+<img alt="Jordan avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPXAjO6A4Ulw1ULU0rmW3cmQ-Tg7R8_i2L71eilO4Kd516qxfS7HJzCkhHxBpn-DOG7DzNONzymACBRw3KiuM7aUQG1yOc5OUuGuLDIt400vdWSTMJEyaUC_Y0cWM7lLC6GNO1u7iJ9DAsB6yqaMl8_a1GUPVCH9MVUDWp-RzVyMTHwwmI9hUrbqep1Lk_Jk48sD-3oMP6eOrxDqHTI0E7tTVhC9ZYrk4QTv0kAXDdjSUQQQtJtjQuCe1q_ZyhinfXZ1MkuBV4htA"/>
+</div>
+<div class="space-y-1">
+<p class="font-body-sm text-body-sm text-text-primary">
+<span class="font-semibold">Jordan Lee</span> closed pull request <span class="text-primary-container">#89: Update Documentation</span>
+</p>
+<p class="text-label-sm font-label-sm text-text-tertiary">5 hours ago</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Section: Project Progress List -->
+<section class="bg-surface rounded-xl border border-border-subtle p-stack-lg">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm text-text-primary">Project Progress</h3>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-label-md font-label-md text-text-secondary border border-border-subtle rounded-md px-3 py-1 bg-surface-container-low">
+<span class="material-symbols-outlined text-[16px]" data-icon="filter_list">filter_list</span> Filter
+                        </span>
+</div>
+</div>
+<div class="space-y-8">
+<!-- Project Item -->
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-indigo-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-indigo-400" data-icon="cloud">cloud</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-text-primary">Cloud Infrastructure Migration</h4>
+<p class="font-body-sm text-body-sm text-text-secondary">High Priority • Due June 28</p>
+</div>
+</div>
+<span class="font-label-caps text-label-caps text-text-primary">78%</span>
+</div>
+<div class="h-1.5 w-full bg-elevated rounded-full overflow-hidden">
+<div class="h-full signature-gradient rounded-full" style="width: 78%"></div>
+</div>
+</div>
+<!-- Project Item -->
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-rose-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-rose-400" data-icon="shield">shield</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-text-primary">Security Audit &amp; Patching</h4>
+<p class="font-body-sm text-body-sm text-text-secondary">Critical • Overdue by 2 days</p>
+</div>
+</div>
+<span class="font-label-caps text-label-caps text-text-primary">45%</span>
+</div>
+<div class="h-1.5 w-full bg-elevated rounded-full overflow-hidden">
+<div class="h-full signature-gradient rounded-full" style="width: 45%"></div>
+</div>
+</div>
+<!-- Project Item -->
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-emerald-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-emerald-400" data-icon="brush">brush</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-text-primary">Design System V2.0</h4>
+<p class="font-body-sm text-body-sm text-text-secondary">Internal • On Track</p>
+</div>
+</div>
+<span class="font-label-caps text-label-caps text-text-primary">92%</span>
+</div>
+<div class="h-1.5 w-full bg-elevated rounded-full overflow-hidden">
+<div class="h-full signature-gradient rounded-full" style="width: 92%"></div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- FAB Contextual (Visible on Dashboard) -->
+<button class="fixed bottom-gutter right-gutter w-14 h-14 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all z-[60]">
+<span class="material-symbols-outlined text-[32px]" data-icon="add">add</span>
+</button>
+<script>
+        // Micro-interactions and hover effects
+        document.querySelectorAll('.bg-surface').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>
