@@ -4,6 +4,7 @@ import { useState, use, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useStore, Task, Column, Priority } from '@/lib/store';
+import EnvPanel from '@/components/project/EnvPanel';
 
 const PRIORITY_STYLES: Record<Priority, { label: string; color: string; bg: string }> = {
   low: { label: 'Low', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
@@ -237,6 +238,7 @@ export default function KanbanPage({ params }: { params: Promise<{ id: string }>
 
   const [addingToColumn, setAddingToColumn] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showEnvPanel, setShowEnvPanel] = useState(false);
 
   // All hooks before early return (Rules of Hooks)
   const onDragEnd = useCallback((result: DropResult) => {
@@ -298,6 +300,13 @@ export default function KanbanPage({ params }: { params: Promise<{ id: string }>
             </span>
           )}
           <button
+            onClick={() => setShowEnvPanel(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[rgba(139,143,212,0.25)] text-text-secondary hover:text-text-primary hover:border-[rgba(139,143,212,0.45)] text-[12px] font-medium transition-all active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[16px]">vpn_key</span>
+            Env
+          </button>
+          <button
             onClick={() => setAddingToColumn(project.columnOrder[0])}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-[12px] font-medium hover:opacity-90 transition-all active:scale-[0.98]"
           >
@@ -339,7 +348,7 @@ export default function KanbanPage({ params }: { params: Promise<{ id: string }>
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`flex-1 rounded-xl p-2 transition-colors min-h-[120px] overflow-y-auto ${
+                        className={`rounded-xl p-2 transition-colors min-h-[120px] ${
                           snapshot.isDraggingOver
                             ? 'bg-primary-container/10 border border-dashed border-primary/30'
                             : 'bg-surface-container-low'
@@ -394,6 +403,11 @@ export default function KanbanPage({ params }: { params: Promise<{ id: string }>
           columns={project.columnOrder.map(cid => project.columns[cid]).filter(Boolean) as Column[]}
           onClose={() => setEditingTask(null)}
         />
+      )}
+
+      {/* Env panel */}
+      {showEnvPanel && (
+        <EnvPanel projectId={project.id} onClose={() => setShowEnvPanel(false)} />
       )}
     </div>
   );

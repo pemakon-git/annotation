@@ -11,7 +11,7 @@ const MAIN_LINKS = [
 ];
 
 const BOTTOM_LINKS = [
-  { href: '#', icon: 'description', label: 'Documentation' },
+  { href: '/docs', icon: 'description', label: 'Documentation' },
   { href: '#', icon: 'help', label: 'Support' },
   { href: '#', icon: 'settings', label: 'Settings' },
 ];
@@ -83,16 +83,24 @@ export default function Sidebar() {
 
       {/* Bottom section */}
       <div className="px-4 pb-4 border-t border-[rgba(139,143,212,0.15)] pt-4 space-y-0.5">
-        {BOTTOM_LINKS.map(link => (
-          <a
-            key={link.label}
-            href={link.href}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-text-secondary hover:text-text-primary hover:bg-surface-container-low transition-all"
-          >
-            <span className="material-symbols-outlined text-[18px]">{link.icon}</span>
-            {link.label}
-          </a>
-        ))}
+        {BOTTOM_LINKS.map(link => {
+          const cls = `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all ${
+            isActive(link.href) && link.href !== '#'
+              ? 'text-text-primary bg-elevated border-l-2 border-primary'
+              : 'text-text-secondary hover:text-text-primary hover:bg-surface-container-low'
+          }`;
+          return link.href === '#' ? (
+            <a key={link.label} href="#" className={cls}>
+              <span className="material-symbols-outlined text-[18px]">{link.icon}</span>
+              {link.label}
+            </a>
+          ) : (
+            <Link key={link.label} href={link.href} className={cls}>
+              <span className="material-symbols-outlined text-[18px]">{link.icon}</span>
+              {link.label}
+            </Link>
+          );
+        })}
       </div>
     </aside>
   );

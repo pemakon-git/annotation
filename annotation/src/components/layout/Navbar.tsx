@@ -23,7 +23,7 @@ export default function Navbar() {
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2 font-bold text-[22px] leading-7 text-primary">
           <span className="material-symbols-outlined">terminal</span>
-          DevFlow
+          Annotation.gg
         </Link>
 
         {/* Nav links */}

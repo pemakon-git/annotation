@@ -3,6 +3,21 @@ import { persist } from 'zustand/middleware';
 
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done';
+export type EnvEnvironment = 'dev' | 'staging' | 'prod';
+
+export interface EnvVar {
+  id: string;
+  key: string;
+  value: string;
+  isSecret: boolean;
+}
+
+export interface DocPage {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: string;
+}
 
 export interface Task {
   id: string;
@@ -34,6 +49,7 @@ export interface Project {
   members: string[];
   columnOrder: string[];
   columns: Record<string, Column>;
+  envSets?: Partial<Record<EnvEnvironment, EnvVar[]>>;
   createdAt: string;
 }
 
@@ -67,6 +83,17 @@ interface DevFlowState {
   // Column actions
   addColumn: (projectId: string, title: string, color: string) => void;
   deleteColumn: (projectId: string, columnId: string) => void;
+
+  // Env var actions
+  addEnvVar: (projectId: string, env: EnvEnvironment, variable: Omit<EnvVar, 'id'>) => void;
+  updateEnvVar: (projectId: string, env: EnvEnvironment, id: string, updates: Partial<Omit<EnvVar, 'id'>>) => void;
+  deleteEnvVar: (projectId: string, env: EnvEnvironment, id: string) => void;
+
+  // Doc actions
+  docs: DocPage[];
+  addDocPage: (title: string) => string;
+  updateDocPage: (id: string, updates: Partial<Pick<DocPage, 'title' | 'content'>>) => void;
+  deleteDocPage: (id: string) => void;
 }
 
 const DEFAULT_COLUMNS: Omit<Column, 'taskIds'>[] = [
@@ -140,6 +167,40 @@ const SEED_ACTIVITY: ActivityItem[] = [
   { id: 'a4', user: 'Sam Kim', action: 'moved task to Done in', target: 'Cloud Infrastructure', targetColor: '#4ade80', time: 'Yesterday' },
 ];
 
+const SEED_DOCS: DocPage[] = [
+  {
+    id: 'doc1',
+    title: 'Getting Started',
+    content: `# Getting Started
+
+Welcome to the team wiki. Use this space to document workflows, architecture decisions, and onboarding guides.
+
+## How to use
+
+- Use **Markdown** to format your content
+- Create new pages with the **+** button in the sidebar
+- Switch between **Edit** and **Preview** mode using the toggle above
+
+## Markdown cheatsheet
+
+\`\`\`
+# Heading 1
+## Heading 2
+
+**bold**  *italic*  ~~strikethrough~~
+
+- unordered list item
+1. ordered list item
+
+| Column A | Column B |
+|----------|----------|
+| value    | value    |
+\`\`\`
+`,
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 function buildInitialState() {
   const projectsMap: Record<string, Project> = {};
   const tasksMap: Record<string, Task> = {};
@@ -163,6 +224,7 @@ export const useStore = create<DevFlowState>()(
       tasks: tasksMap,
       projectOrder: SEED_PROJECTS.map(p => p.id),
       activity: SEED_ACTIVITY,
+      docs: SEED_DOCS,
 
       addProject: (data) => {
         const id = generateId();
@@ -335,6 +397,80 @@ export const useStore = create<DevFlowState>()(
             },
           };
         }),
+
+      addEnvVar: (projectId, env, variable) => {
+        const id = generateId();
+        set(state => {
+          const project = state.projects[projectId];
+          if (!project) return state;
+          const envSets = project.envSets ?? {};
+          const current = envSets[env] ?? [];
+          return {
+            projects: {
+              ...state.projects,
+              [projectId]: {
+                ...project,
+                envSets: { ...envSets, [env]: [...current, { ...variable, id }] },
+              },
+            },
+          };
+        });
+      },
+
+      updateEnvVar: (projectId, env, id, updates) =>
+        set(state => {
+          const project = state.projects[projectId];
+          if (!project) return state;
+          const envSets = project.envSets ?? {};
+          const current = envSets[env] ?? [];
+          return {
+            projects: {
+              ...state.projects,
+              [projectId]: {
+                ...project,
+                envSets: {
+                  ...envSets,
+                  [env]: current.map(v => v.id === id ? { ...v, ...updates } : v),
+                },
+              },
+            },
+          };
+        }),
+
+      deleteEnvVar: (projectId, env, id) =>
+        set(state => {
+          const project = state.projects[projectId];
+          if (!project) return state;
+          const envSets = project.envSets ?? {};
+          const current = envSets[env] ?? [];
+          return {
+            projects: {
+              ...state.projects,
+              [projectId]: {
+                ...project,
+                envSets: { ...envSets, [env]: current.filter(v => v.id !== id) },
+              },
+            },
+          };
+        }),
+
+      addDocPage: (title) => {
+        const id = generateId();
+        set(state => ({
+          docs: [...state.docs, { id, title, content: '', updatedAt: new Date().toISOString() }],
+        }));
+        return id;
+      },
+
+      updateDocPage: (id, updates) =>
+        set(state => ({
+          docs: state.docs.map(d =>
+            d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d
+          ),
+        })),
+
+      deleteDocPage: (id) =>
+        set(state => ({ docs: state.docs.filter(d => d.id !== id) })),
     }),
     { name: 'devflow-storage' }
   )
