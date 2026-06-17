@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createClient } from '@/lib/supabase/client';
 
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done';
@@ -68,6 +68,11 @@ interface DevFlowState {
   tasks: Record<string, Task>;
   projectOrder: string[];
   activity: ActivityItem[];
+  docs: DocPage[];
+
+  // Lifecycle
+  loaded: boolean;
+  hydrate: () => Promise<void>;
 
   // Project actions
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'columnOrder' | 'columns'>) => string;
@@ -90,7 +95,6 @@ interface DevFlowState {
   deleteEnvVar: (projectId: string, env: EnvEnvironment, id: string) => void;
 
   // Doc actions
-  docs: DocPage[];
   addDocPage: (title: string) => string;
   updateDocPage: (id: string, updates: Partial<Pick<DocPage, 'title' | 'content'>>) => void;
   deleteDocPage: (id: string) => void;
@@ -103,382 +107,426 @@ const DEFAULT_COLUMNS: Omit<Column, 'taskIds'>[] = [
   { id: 'done', title: 'Done', color: '#4ade80' },
 ];
 
-const SEED_TASKS: Task[] = [
-  {
-    id: 't1', projectId: 'p1', columnId: 'in_progress',
-    title: 'Setup AWS VPC and subnets', description: 'Configure VPC, public/private subnets, NAT gateway',
-    priority: 'high', assignee: 'Alex R.', dueDate: '2026-06-20', createdAt: new Date().toISOString(), tags: ['infrastructure'],
-  },
-  {
-    id: 't2', projectId: 'p1', columnId: 'done',
-    title: 'Terraform state backend', description: 'S3 bucket + DynamoDB lock table',
-    priority: 'high', assignee: 'Jordan L.', createdAt: new Date().toISOString(), tags: ['terraform'],
-  },
-  {
-    id: 't3', projectId: 'p1', columnId: 'todo',
-    title: 'Load balancer configuration', description: 'ALB setup with health checks and SSL termination',
-    priority: 'medium', dueDate: '2026-06-25', createdAt: new Date().toISOString(), tags: ['networking'],
-  },
-  {
-    id: 't4', projectId: 'p2', columnId: 'in_progress',
-    title: 'Implement WebAuthn flow', description: 'Biometric authentication using platform authenticators',
-    priority: 'critical', assignee: 'Sarah C.', dueDate: '2026-06-15', createdAt: new Date().toISOString(), tags: ['auth', 'security'],
-  },
-  {
-    id: 't5', projectId: 'p2', columnId: 'in_review',
-    title: 'Multi-tenant session isolation', description: 'Ensure sessions are scoped per workspace',
-    priority: 'high', assignee: 'Alex R.', createdAt: new Date().toISOString(), tags: ['security'],
-  },
-];
-
-const SEED_PROJECTS: Project[] = [
-  {
-    id: 'p1', name: 'Cloud Infrastructure', description: 'Scalable AWS architecture for high-traffic microservices with automated failover.',
-    icon: 'cloud', color: '#8B8FD4', dueDate: '2026-06-28',
-    members: ['Alex R.', 'Jordan L.', 'Sam K.'],
-    columnOrder: ['todo', 'in_progress', 'in_review', 'done'],
-    columns: {
-      todo: { id: 'todo', title: 'To Do', color: '#6B7FFF', taskIds: ['t3'] },
-      in_progress: { id: 'in_progress', title: 'In Progress', color: '#e1c562', taskIds: ['t1'] },
-      in_review: { id: 'in_review', title: 'In Review', color: '#9B6FD4', taskIds: [] },
-      done: { id: 'done', title: 'Done', color: '#4ade80', taskIds: ['t2'] },
-    },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'p2', name: 'Auth Overhaul', description: 'Migrating to biometric-first WebAuthn with multi-tenant support.',
-    icon: 'security', color: '#FB7185', dueDate: '2026-06-10',
-    members: ['Sarah C.', 'Alex R.'],
-    columnOrder: ['todo', 'in_progress', 'in_review', 'done'],
-    columns: {
-      todo: { id: 'todo', title: 'To Do', color: '#6B7FFF', taskIds: [] },
-      in_progress: { id: 'in_progress', title: 'In Progress', color: '#e1c562', taskIds: ['t4'] },
-      in_review: { id: 'in_review', title: 'In Review', color: '#9B6FD4', taskIds: ['t5'] },
-      done: { id: 'done', title: 'Done', color: '#4ade80', taskIds: [] },
-    },
-    createdAt: new Date().toISOString(),
-  },
-];
-
-const SEED_ACTIVITY: ActivityItem[] = [
+// Display-only demo feed. There is no activity table yet (no events generate
+// activity), so this stays in memory rather than in Supabase.
+const DEMO_ACTIVITY: ActivityItem[] = [
   { id: 'a1', user: 'Alex Rivera', action: 'pushed 3 commits to', target: 'dev-flow/api-core', targetColor: '#bfc2ff', time: '24 minutes ago' },
   { id: 'a2', user: 'Sarah Chen', action: 'commented on', target: 'Issue #142: Auth Refactor', targetColor: '#e1c562', time: '2 hours ago' },
   { id: 'a3', user: 'Jordan Lee', action: 'closed pull request', target: '#89: Update Documentation', targetColor: '#8b8fd4', time: '5 hours ago' },
   { id: 'a4', user: 'Sam Kim', action: 'moved task to Done in', target: 'Cloud Infrastructure', targetColor: '#4ade80', time: 'Yesterday' },
 ];
 
-const SEED_DOCS: DocPage[] = [
-  {
-    id: 'doc1',
-    title: 'Getting Started',
-    content: `# Getting Started
-
-Welcome to the team wiki. Use this space to document workflows, architecture decisions, and onboarding guides.
-
-## How to use
-
-- Use **Markdown** to format your content
-- Create new pages with the **+** button in the sidebar
-- Switch between **Edit** and **Preview** mode using the toggle above
-
-## Markdown cheatsheet
-
-\`\`\`
-# Heading 1
-## Heading 2
-
-**bold**  *italic*  ~~strikethrough~~
-
-- unordered list item
-1. ordered list item
-
-| Column A | Column B |
-|----------|----------|
-| value    | value    |
-\`\`\`
-`,
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-function buildInitialState() {
-  const projectsMap: Record<string, Project> = {};
-  const tasksMap: Record<string, Task> = {};
-
-  SEED_PROJECTS.forEach(p => { projectsMap[p.id] = p; });
-  SEED_TASKS.forEach(t => { tasksMap[t.id] = t; });
-
-  return { projectsMap, tasksMap };
-}
-
 function generateId() {
-  return Math.random().toString(36).slice(2, 10);
+  return crypto.randomUUID();
 }
 
-const { projectsMap, tasksMap } = buildInitialState();
+// ---------------------------------------------------------------------------
+// Supabase client (lazy singleton — only created in the browser)
+// ---------------------------------------------------------------------------
+let _supabase: ReturnType<typeof createClient> | null = null;
+function db() {
+  if (!_supabase) _supabase = createClient();
+  return _supabase;
+}
 
-export const useStore = create<DevFlowState>()(
-  persist(
-    (set) => ({
-      projects: projectsMap,
-      tasks: tasksMap,
-      projectOrder: SEED_PROJECTS.map(p => p.id),
-      activity: SEED_ACTIVITY,
-      docs: SEED_DOCS,
+// ---------------------------------------------------------------------------
+// Row <-> store mappers
+// ---------------------------------------------------------------------------
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToProject(row: any): Project {
+  const envSets = row.env_sets ?? {};
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? '',
+    icon: row.icon ?? 'folder',
+    color: row.color ?? '#8B8FD4',
+    dueDate: row.due_date ?? undefined,
+    members: row.members ?? [],
+    columnOrder: row.column_order ?? [],
+    columns: row.columns ?? {},
+    envSets: Object.keys(envSets).length ? envSets : undefined,
+    createdAt: row.created_at,
+  };
+}
 
-      addProject: (data) => {
-        const id = generateId();
-        const columns: Record<string, Column> = {};
-        const columnOrder = DEFAULT_COLUMNS.map(c => c.id);
-        DEFAULT_COLUMNS.forEach(c => { columns[c.id] = { ...c, taskIds: [] }; });
+function projectToRow(p: Project) {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    icon: p.icon,
+    color: p.color,
+    due_date: p.dueDate ?? null,
+    members: p.members,
+    column_order: p.columnOrder,
+    columns: p.columns,
+    env_sets: p.envSets ?? {},
+    created_at: p.createdAt,
+  };
+}
 
-        set(state => ({
-          projects: { ...state.projects, [id]: { ...data, id, createdAt: new Date().toISOString(), columnOrder, columns } },
-          projectOrder: [...state.projectOrder, id],
-        }));
-        return id;
+function rowToTask(row: any): Task {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    columnId: row.column_id,
+    title: row.title,
+    description: row.description ?? '',
+    priority: row.priority ?? 'medium',
+    assignee: row.assignee ?? undefined,
+    dueDate: row.due_date ?? undefined,
+    createdAt: row.created_at,
+    tags: row.tags ?? [],
+  };
+}
+
+function taskToRow(t: Task) {
+  return {
+    id: t.id,
+    project_id: t.projectId,
+    column_id: t.columnId,
+    title: t.title,
+    description: t.description,
+    priority: t.priority,
+    assignee: t.assignee ?? null,
+    due_date: t.dueDate ?? null,
+    tags: t.tags,
+    created_at: t.createdAt,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ---------------------------------------------------------------------------
+// Persistence helpers (fire-and-forget; log on failure)
+// ---------------------------------------------------------------------------
+function logError(context: string, error: unknown) {
+  if (!error) return;
+  // Supabase/PostgREST errors expose message/code/details/hint as
+  // non-enumerable-ish fields, so spell them out for a readable log.
+  const e = error as { message?: string; code?: string; details?: string; hint?: string };
+  console.error(`[store] ${context}: ${e.message ?? 'error'}${e.code ? ` (${e.code})` : ''}`, e.details ?? '', e.hint ?? '');
+}
+
+function saveProject(project: Project) {
+  db().from('projects').upsert(projectToRow(project)).then(({ error }) => logError('saveProject', error));
+}
+function removeProject(id: string) {
+  db().from('projects').delete().eq('id', id).then(({ error }) => logError('removeProject', error));
+}
+function saveTask(task: Task) {
+  db().from('tasks').upsert(taskToRow(task)).then(({ error }) => logError('saveTask', error));
+}
+function removeTask(id: string) {
+  db().from('tasks').delete().eq('id', id).then(({ error }) => logError('removeTask', error));
+}
+function saveDoc(doc: DocPage) {
+  db()
+    .from('docs')
+    .upsert({ id: doc.id, title: doc.title, content: doc.content, updated_at: doc.updatedAt })
+    .then(({ error }) => logError('saveDoc', error));
+}
+function removeDoc(id: string) {
+  db().from('docs').delete().eq('id', id).then(({ error }) => logError('removeDoc', error));
+}
+
+export const useStore = create<DevFlowState>()((set, get) => ({
+  projects: {},
+  tasks: {},
+  projectOrder: [],
+  activity: DEMO_ACTIVITY,
+  docs: [],
+  loaded: false,
+
+  hydrate: async () => {
+    const supabase = db();
+    const [projectsRes, tasksRes, docsRes] = await Promise.all([
+      supabase.from('projects').select('*').order('created_at', { ascending: true }),
+      supabase.from('tasks').select('*'),
+      supabase.from('docs').select('*').order('updated_at', { ascending: true }),
+    ]);
+
+    logError('hydrate.projects', projectsRes.error);
+    logError('hydrate.tasks', tasksRes.error);
+    logError('hydrate.docs', docsRes.error);
+
+    const projects: Record<string, Project> = {};
+    const projectOrder: string[] = [];
+    (projectsRes.data ?? []).forEach((row) => {
+      const p = rowToProject(row);
+      projects[p.id] = p;
+      projectOrder.push(p.id);
+    });
+
+    const tasks: Record<string, Task> = {};
+    (tasksRes.data ?? []).forEach((row) => {
+      const t = rowToTask(row);
+      tasks[t.id] = t;
+    });
+
+    const docs: DocPage[] = (docsRes.data ?? []).map(rowToDoc);
+
+    set({ projects, projectOrder, tasks, docs, loaded: true });
+  },
+
+  addProject: (data) => {
+    const id = generateId();
+    const columns: Record<string, Column> = {};
+    const columnOrder = DEFAULT_COLUMNS.map((c) => c.id);
+    DEFAULT_COLUMNS.forEach((c) => {
+      columns[c.id] = { ...c, taskIds: [] };
+    });
+
+    const project: Project = { ...data, id, createdAt: new Date().toISOString(), columnOrder, columns };
+
+    set((state) => ({
+      projects: { ...state.projects, [id]: project },
+      projectOrder: [...state.projectOrder, id],
+    }));
+    saveProject(project);
+    return id;
+  },
+
+  updateProject: (id, updates) => {
+    const current = get().projects[id];
+    if (!current) return;
+    const updated = { ...current, ...updates };
+    set((state) => ({ projects: { ...state.projects, [id]: updated } }));
+    saveProject(updated);
+  },
+
+  deleteProject: (id) => {
+    const project = get().projects[id];
+    if (!project) return;
+    const taskIdsToDelete = new Set(Object.values(project.columns).flatMap((c) => c.taskIds));
+
+    set((state) => {
+      const newTasks = { ...state.tasks };
+      taskIdsToDelete.forEach((tid) => delete newTasks[tid]);
+      const newProjects = { ...state.projects };
+      delete newProjects[id];
+      return {
+        projects: newProjects,
+        tasks: newTasks,
+        projectOrder: state.projectOrder.filter((pid) => pid !== id),
+      };
+    });
+    // Tasks are removed automatically by the ON DELETE CASCADE foreign key.
+    removeProject(id);
+  },
+
+  addTask: (data) => {
+    const id = generateId();
+    const task: Task = { ...data, id, createdAt: new Date().toISOString() };
+    const project = get().projects[data.projectId];
+    if (!project) return;
+    const col = project.columns[data.columnId];
+    if (!col) return;
+
+    const updatedProject: Project = {
+      ...project,
+      columns: {
+        ...project.columns,
+        [data.columnId]: { ...col, taskIds: [...col.taskIds, id] },
       },
+    };
 
-      updateProject: (id, updates) =>
-        set(state => ({
-          projects: { ...state.projects, [id]: { ...state.projects[id], ...updates } },
-        })),
+    set((state) => ({
+      tasks: { ...state.tasks, [id]: task },
+      projects: { ...state.projects, [data.projectId]: updatedProject },
+    }));
+    saveTask(task);
+    saveProject(updatedProject);
+  },
 
-      deleteProject: (id) =>
-        set(state => {
-          const project = state.projects[id];
-          if (!project) return state;
-          const taskIdsToDelete = new Set(
-            Object.values(project.columns).flatMap(c => c.taskIds)
-          );
-          const newTasks = { ...state.tasks };
-          taskIdsToDelete.forEach(tid => delete newTasks[tid]);
-          const newProjects = { ...state.projects };
-          delete newProjects[id];
-          return {
-            projects: newProjects,
-            tasks: newTasks,
-            projectOrder: state.projectOrder.filter(pid => pid !== id),
-          };
-        }),
+  updateTask: (id, updates) => {
+    const current = get().tasks[id];
+    if (!current) return;
+    const updated = { ...current, ...updates };
+    set((state) => ({ tasks: { ...state.tasks, [id]: updated } }));
+    saveTask(updated);
+  },
 
-      addTask: (data) => {
-        const id = generateId();
-        const task: Task = { ...data, id, createdAt: new Date().toISOString() };
-        set(state => {
-          const project = state.projects[data.projectId];
-          if (!project) return state;
-          const col = project.columns[data.columnId];
-          if (!col) return state;
-          return {
-            tasks: { ...state.tasks, [id]: task },
-            projects: {
-              ...state.projects,
-              [data.projectId]: {
-                ...project,
-                columns: {
-                  ...project.columns,
-                  [data.columnId]: { ...col, taskIds: [...col.taskIds, id] },
-                },
-              },
-            },
-          };
-        });
+  deleteTask: (id) => {
+    const task = get().tasks[id];
+    if (!task) return;
+    const project = get().projects[task.projectId];
+    const col = project?.columns[task.columnId];
+    if (!project || !col) return;
+
+    const updatedProject: Project = {
+      ...project,
+      columns: {
+        ...project.columns,
+        [task.columnId]: { ...col, taskIds: col.taskIds.filter((tid) => tid !== id) },
       },
+    };
 
-      updateTask: (id, updates) =>
-        set(state => ({
-          tasks: { ...state.tasks, [id]: { ...state.tasks[id], ...updates } },
-        })),
+    set((state) => {
+      const newTasks = { ...state.tasks };
+      delete newTasks[id];
+      return {
+        tasks: newTasks,
+        projects: { ...state.projects, [task.projectId]: updatedProject },
+      };
+    });
+    removeTask(id);
+    saveProject(updatedProject);
+  },
 
-      deleteTask: (id) =>
-        set(state => {
-          const task = state.tasks[id];
-          if (!task) return state;
-          const project = state.projects[task.projectId];
-          const col = project?.columns[task.columnId];
-          if (!col) return state;
-          const newTasks = { ...state.tasks };
-          delete newTasks[id];
-          return {
-            tasks: newTasks,
-            projects: {
-              ...state.projects,
-              [task.projectId]: {
-                ...project,
-                columns: {
-                  ...project.columns,
-                  [task.columnId]: { ...col, taskIds: col.taskIds.filter(tid => tid !== id) },
-                },
-              },
-            },
-          };
-        }),
+  moveTask: (taskId, sourceColId, destColId, sourceIndex, destIndex, projectId) => {
+    const project = get().projects[projectId];
+    if (!project) return;
+    const sourceCol = project.columns[sourceColId];
+    const destCol = project.columns[destColId];
+    if (!sourceCol || !destCol) return;
 
-      moveTask: (taskId, sourceColId, destColId, sourceIndex, destIndex, projectId) =>
-        set(state => {
-          const project = state.projects[projectId];
-          if (!project) return state;
-          const sourceCol = project.columns[sourceColId];
-          const destCol = project.columns[destColId];
-          if (!sourceCol || !destCol) return state;
+    if (sourceColId === destColId) {
+      const newTaskIds = [...sourceCol.taskIds];
+      newTaskIds.splice(sourceIndex, 1);
+      newTaskIds.splice(destIndex, 0, taskId);
+      const updatedProject: Project = {
+        ...project,
+        columns: { ...project.columns, [sourceColId]: { ...sourceCol, taskIds: newTaskIds } },
+      };
+      set((state) => ({ projects: { ...state.projects, [projectId]: updatedProject } }));
+      saveProject(updatedProject);
+      return;
+    }
 
-          if (sourceColId === destColId) {
-            const newTaskIds = [...sourceCol.taskIds];
-            newTaskIds.splice(sourceIndex, 1);
-            newTaskIds.splice(destIndex, 0, taskId);
-            return {
-              projects: {
-                ...state.projects,
-                [projectId]: {
-                  ...project,
-                  columns: { ...project.columns, [sourceColId]: { ...sourceCol, taskIds: newTaskIds } },
-                },
-              },
-            };
-          }
+    const newSourceIds = [...sourceCol.taskIds];
+    newSourceIds.splice(sourceIndex, 1);
+    const newDestIds = [...destCol.taskIds];
+    newDestIds.splice(destIndex, 0, taskId);
 
-          const newSourceIds = [...sourceCol.taskIds];
-          newSourceIds.splice(sourceIndex, 1);
-          const newDestIds = [...destCol.taskIds];
-          newDestIds.splice(destIndex, 0, taskId);
-
-          return {
-            tasks: { ...state.tasks, [taskId]: { ...state.tasks[taskId], columnId: destColId } },
-            projects: {
-              ...state.projects,
-              [projectId]: {
-                ...project,
-                columns: {
-                  ...project.columns,
-                  [sourceColId]: { ...sourceCol, taskIds: newSourceIds },
-                  [destColId]: { ...destCol, taskIds: newDestIds },
-                },
-              },
-            },
-          };
-        }),
-
-      addColumn: (projectId, title, color) =>
-        set(state => {
-          const project = state.projects[projectId];
-          if (!project) return state;
-          const id = generateId();
-          return {
-            projects: {
-              ...state.projects,
-              [projectId]: {
-                ...project,
-                columnOrder: [...project.columnOrder, id],
-                columns: { ...project.columns, [id]: { id, title, color, taskIds: [] } },
-              },
-            },
-          };
-        }),
-
-      deleteColumn: (projectId, columnId) =>
-        set(state => {
-          const project = state.projects[projectId];
-          if (!project) return state;
-          const col = project.columns[columnId];
-          const newTasks = { ...state.tasks };
-          col?.taskIds.forEach(tid => delete newTasks[tid]);
-          const newColumns = { ...project.columns };
-          delete newColumns[columnId];
-          return {
-            tasks: newTasks,
-            projects: {
-              ...state.projects,
-              [projectId]: {
-                ...project,
-                columnOrder: project.columnOrder.filter(id => id !== columnId),
-                columns: newColumns,
-              },
-            },
-          };
-        }),
-
-      addEnvVar: (projectId, env, variable) => {
-        const id = generateId();
-        set(state => {
-          const project = state.projects[projectId];
-          if (!project) return state;
-          const envSets = project.envSets ?? {};
-          const current = envSets[env] ?? [];
-          return {
-            projects: {
-              ...state.projects,
-              [projectId]: {
-                ...project,
-                envSets: { ...envSets, [env]: [...current, { ...variable, id }] },
-              },
-            },
-          };
-        });
+    const updatedProject: Project = {
+      ...project,
+      columns: {
+        ...project.columns,
+        [sourceColId]: { ...sourceCol, taskIds: newSourceIds },
+        [destColId]: { ...destCol, taskIds: newDestIds },
       },
+    };
+    const movedTask = get().tasks[taskId];
+    const updatedTask = movedTask ? { ...movedTask, columnId: destColId } : undefined;
 
-      updateEnvVar: (projectId, env, id, updates) =>
-        set(state => {
-          const project = state.projects[projectId];
-          if (!project) return state;
-          const envSets = project.envSets ?? {};
-          const current = envSets[env] ?? [];
-          return {
-            projects: {
-              ...state.projects,
-              [projectId]: {
-                ...project,
-                envSets: {
-                  ...envSets,
-                  [env]: current.map(v => v.id === id ? { ...v, ...updates } : v),
-                },
-              },
-            },
-          };
-        }),
+    set((state) => ({
+      tasks: updatedTask ? { ...state.tasks, [taskId]: updatedTask } : state.tasks,
+      projects: { ...state.projects, [projectId]: updatedProject },
+    }));
+    saveProject(updatedProject);
+    if (updatedTask) saveTask(updatedTask);
+  },
 
-      deleteEnvVar: (projectId, env, id) =>
-        set(state => {
-          const project = state.projects[projectId];
-          if (!project) return state;
-          const envSets = project.envSets ?? {};
-          const current = envSets[env] ?? [];
-          return {
-            projects: {
-              ...state.projects,
-              [projectId]: {
-                ...project,
-                envSets: { ...envSets, [env]: current.filter(v => v.id !== id) },
-              },
-            },
-          };
-        }),
+  addColumn: (projectId, title, color) => {
+    const project = get().projects[projectId];
+    if (!project) return;
+    const id = generateId();
+    const updatedProject: Project = {
+      ...project,
+      columnOrder: [...project.columnOrder, id],
+      columns: { ...project.columns, [id]: { id, title, color, taskIds: [] } },
+    };
+    set((state) => ({ projects: { ...state.projects, [projectId]: updatedProject } }));
+    saveProject(updatedProject);
+  },
 
-      addDocPage: (title) => {
-        const id = generateId();
-        set(state => ({
-          docs: [...state.docs, { id, title, content: '', updatedAt: new Date().toISOString() }],
-        }));
-        return id;
-      },
+  deleteColumn: (projectId, columnId) => {
+    const project = get().projects[projectId];
+    if (!project) return;
+    const col = project.columns[columnId];
+    const removedTaskIds = col?.taskIds ?? [];
 
-      updateDocPage: (id, updates) =>
-        set(state => ({
-          docs: state.docs.map(d =>
-            d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d
-          ),
-        })),
+    const newColumns = { ...project.columns };
+    delete newColumns[columnId];
+    const updatedProject: Project = {
+      ...project,
+      columnOrder: project.columnOrder.filter((id) => id !== columnId),
+      columns: newColumns,
+    };
 
-      deleteDocPage: (id) =>
-        set(state => ({ docs: state.docs.filter(d => d.id !== id) })),
-    }),
-    { name: 'devflow-storage' }
-  )
-);
+    set((state) => {
+      const newTasks = { ...state.tasks };
+      removedTaskIds.forEach((tid) => delete newTasks[tid]);
+      return {
+        tasks: newTasks,
+        projects: { ...state.projects, [projectId]: updatedProject },
+      };
+    });
+    removedTaskIds.forEach(removeTask);
+    saveProject(updatedProject);
+  },
+
+  addEnvVar: (projectId, env, variable) => {
+    const project = get().projects[projectId];
+    if (!project) return;
+    const envSets = project.envSets ?? {};
+    const current = envSets[env] ?? [];
+    const updatedProject: Project = {
+      ...project,
+      envSets: { ...envSets, [env]: [...current, { ...variable, id: generateId() }] },
+    };
+    set((state) => ({ projects: { ...state.projects, [projectId]: updatedProject } }));
+    saveProject(updatedProject);
+  },
+
+  updateEnvVar: (projectId, env, id, updates) => {
+    const project = get().projects[projectId];
+    if (!project) return;
+    const envSets = project.envSets ?? {};
+    const current = envSets[env] ?? [];
+    const updatedProject: Project = {
+      ...project,
+      envSets: { ...envSets, [env]: current.map((v) => (v.id === id ? { ...v, ...updates } : v)) },
+    };
+    set((state) => ({ projects: { ...state.projects, [projectId]: updatedProject } }));
+    saveProject(updatedProject);
+  },
+
+  deleteEnvVar: (projectId, env, id) => {
+    const project = get().projects[projectId];
+    if (!project) return;
+    const envSets = project.envSets ?? {};
+    const current = envSets[env] ?? [];
+    const updatedProject: Project = {
+      ...project,
+      envSets: { ...envSets, [env]: current.filter((v) => v.id !== id) },
+    };
+    set((state) => ({ projects: { ...state.projects, [projectId]: updatedProject } }));
+    saveProject(updatedProject);
+  },
+
+  addDocPage: (title) => {
+    const id = generateId();
+    const doc: DocPage = { id, title, content: '', updatedAt: new Date().toISOString() };
+    set((state) => ({ docs: [...state.docs, doc] }));
+    saveDoc(doc);
+    return id;
+  },
+
+  updateDocPage: (id, updates) => {
+    const current = get().docs.find((d) => d.id === id);
+    if (!current) return;
+    const updated: DocPage = { ...current, ...updates, updatedAt: new Date().toISOString() };
+    set((state) => ({ docs: state.docs.map((d) => (d.id === id ? updated : d)) }));
+    saveDoc(updated);
+  },
+
+  deleteDocPage: (id) => {
+    set((state) => ({ docs: state.docs.filter((d) => d.id !== id) }));
+    removeDoc(id);
+  },
+}));
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function rowToDoc(row: any): DocPage {
+  return { id: row.id, title: row.title, content: row.content ?? '', updatedAt: row.updated_at };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Derived selectors
 export function getProjectProgress(project: Project, tasks: Record<string, Task>) {
-  const allTaskIds = Object.values(project.columns).flatMap(c => c.taskIds);
+  const allTaskIds = Object.values(project.columns).flatMap((c) => c.taskIds);
   if (allTaskIds.length === 0) return 0;
   const doneCol = project.columns['done'];
   const doneCount = doneCol?.taskIds.length ?? 0;
@@ -487,6 +535,6 @@ export function getProjectProgress(project: Project, tasks: Record<string, Task>
 
 export function getProjectDeadlines(projects: Record<string, Project>) {
   return Object.values(projects)
-    .filter(p => p.dueDate)
-    .map(p => ({ projectId: p.id, name: p.name, dueDate: p.dueDate!, color: p.color }));
+    .filter((p) => p.dueDate)
+    .map((p) => ({ projectId: p.id, name: p.name, dueDate: p.dueDate!, color: p.color }));
 }

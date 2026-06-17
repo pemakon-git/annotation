@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from '@/app/login/actions';
 
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
@@ -9,8 +10,9 @@ const NAV_LINKS = [
   { href: '/calendar', label: 'Calendar' },
 ];
 
-export default function Navbar() {
+export default function Navbar({ email = '' }: { email?: string }) {
   const pathname = usePathname();
+  const initials = email.slice(0, 2).toUpperCase() || 'PK';
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -50,9 +52,21 @@ export default function Navbar() {
           <span className="material-symbols-outlined">notifications</span>
           <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full border-2 border-background" />
         </button>
-        <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container text-[12px] font-semibold border border-[rgba(139,143,212,0.15)]">
-          PK
+        <div
+          title={email}
+          className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container text-[12px] font-semibold border border-[rgba(139,143,212,0.15)]"
+        >
+          {initials}
         </div>
+        <form action={signOut}>
+          <button
+            type="submit"
+            title="Sign out"
+            className="flex items-center text-text-secondary hover:text-error transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">logout</span>
+          </button>
+        </form>
       </div>
     </nav>
   );
