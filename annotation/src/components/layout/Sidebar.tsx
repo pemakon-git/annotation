@@ -12,8 +12,8 @@ const MAIN_LINKS = [
 
 const BOTTOM_LINKS = [
   { href: '/docs', icon: 'description', label: 'Documentation' },
-  { href: '#', icon: 'help', label: 'Support' },
-  { href: '#', icon: 'settings', label: 'Settings' },
+  { href: '/support', icon: 'help', label: 'Support' },
+  { href: '/settings', icon: 'settings', label: 'Settings' },
 ];
 
 export default function Sidebar() {

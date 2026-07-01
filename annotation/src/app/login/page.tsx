@@ -12,9 +12,5 @@ export default async function LoginPage({
       ? undefined
       : undefined;
 
-  return (
-    <main className="min-h-screen flex items-center justify-center p-6 bg-background">
-      <AuthForm mode="login" notice={notice} />
-    </main>
-  );
+  return <AuthForm mode="login" notice={notice} />;
 }
